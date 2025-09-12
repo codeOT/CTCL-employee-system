@@ -55,25 +55,7 @@ export type Attendance = {
 
 // Define the context type
 type LayoutContextType = {
-  employees: Employee[]
-  addEmployee: (employee: Employee) => void
-  updateEmployee: (employee: Employee) => void
-  deleteEmployee: (id: string) => void
 
-  leaveRequests: LeaveRequest[]
-  addLeaveRequest: (request: LeaveRequest) => void
-  updateLeaveRequest: (request: LeaveRequest) => void
-  deleteLeaveRequest: (id: string) => void
-
-  projects: Project[]
-  addProject: (project: Project) => void
-  updateProject: (project: Project) => void
-  deleteProject: (id: string) => void
-
-  attendance: Attendance[]
-  addAttendance: (record: Attendance) => void
-  updateAttendance: (record: Attendance) => void
-  deleteAttendance: (id: string) => void
 
   sidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
@@ -87,38 +69,11 @@ const LayoutContext = createContext<LayoutContextType | undefined>(undefined)
 
 // Create a provider component
 export function LayoutProvider({ children }: { children: ReactNode }) {
-  // Initialize state from localStorage if available, otherwise use default values
-  const [employees, setEmployees] = useState<Employee[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("employees")
-      return saved ? JSON.parse(saved) : []
-    }
-    return []
-  })
+ 
 
-  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("leaveRequests")
-      return saved ? JSON.parse(saved) : []
-    }
-    return []
-  })
+ 
 
-  const [projects, setProjects] = useState<Project[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("projects")
-      return saved ? JSON.parse(saved) : []
-    }
-    return []
-  })
-
-  const [attendance, setAttendance] = useState<Attendance[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("attendance")
-      return saved ? JSON.parse(saved) : []
-    }
-    return []
-  })
+  
 
   // Initialize sidebar state based on screen size
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -140,30 +95,7 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
     return false
   })
 
-  // Update localStorage when state changes
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("employees", JSON.stringify(employees))
-    }
-  }, [employees])
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("leaveRequests", JSON.stringify(leaveRequests))
-    }
-  }, [leaveRequests])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("projects", JSON.stringify(projects))
-    }
-  }, [projects])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("attendance", JSON.stringify(attendance))
-    }
-  }, [attendance])
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -172,79 +104,12 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
   }, [darkMode])
 
   // CRUD operations for employees
-  const addEmployee = (employee: Employee) => {
-    setEmployees([...employees, employee])
-  }
 
-  const updateEmployee = (employee: Employee) => {
-    setEmployees(employees.map((e) => (e.id === employee.id ? employee : e)))
-  }
-
-  const deleteEmployee = (id: string) => {
-    setEmployees(employees.filter((e) => e.id !== id))
-  }
-
-  // CRUD operations for leave requests
-  const addLeaveRequest = (request: LeaveRequest) => {
-    setLeaveRequests([...leaveRequests, request])
-  }
-
-  const updateLeaveRequest = (request: LeaveRequest) => {
-    setLeaveRequests(leaveRequests.map((r) => (r.id === request.id ? request : r)))
-  }
-
-  const deleteLeaveRequest = (id: string) => {
-    setLeaveRequests(leaveRequests.filter((r) => r.id !== id))
-  }
-
-  // CRUD operations for projects
-  const addProject = (project: Project) => {
-    setProjects([...projects, project])
-  }
-
-  const updateProject = (project: Project) => {
-    setProjects(projects.map((p) => (p.id === project.id ? project : p)))
-  }
-
-  const deleteProject = (id: string) => {
-    setProjects(projects.filter((p) => p.id !== id))
-  }
-
-  // CRUD operations for attendance
-  const addAttendance = (record: Attendance) => {
-    setAttendance([...attendance, record])
-  }
-
-  const updateAttendance = (record: Attendance) => {
-    setAttendance(attendance.map((a) => (a.id === record.id ? record : a)))
-  }
-
-  const deleteAttendance = (id: string) => {
-    setAttendance(attendance.filter((a) => a.id !== id))
-  }
 
   return (
     <LayoutContext.Provider
       value={{
-        employees,
-        addEmployee,
-        updateEmployee,
-        deleteEmployee,
-
-        leaveRequests,
-        addLeaveRequest,
-        updateLeaveRequest,
-        deleteLeaveRequest,
-
-        projects,
-        addProject,
-        updateProject,
-        deleteProject,
-
-        attendance,
-        addAttendance,
-        updateAttendance,
-        deleteAttendance,
+       
 
         sidebarOpen,
         setSidebarOpen,
