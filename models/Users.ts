@@ -29,8 +29,8 @@ const UserSchema = new Schema<IUser>(
     approvalPending: { type: Boolean, default: false },
     approvedAt: { type: Date }, 
     declinedAt: { type: Date },
-    lastLoginAttempt: { type: Date },  // Add this if not already present
-    lastLogout: { type: Date },        // Add this new field
+    lastLoginAttempt: { type: Date }, 
+    lastLogout: { type: Date },        
   },
   { timestamps: true }
 );

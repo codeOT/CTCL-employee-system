@@ -219,7 +219,7 @@ export default function AdminPanel() {
                           <TableCell className="p-2">{u.name}</TableCell>
                         )}
                         
-                        {/* Show masked email for regular admin, full email for super admin */}
+                       
                         <TableCell className="p-2">
                           {maskEmail(u.email)}
                         </TableCell>
@@ -249,10 +249,10 @@ export default function AdminPanel() {
                         
                         <TableCell className="p-2">
                           <div className="flex space-x-2">
-                            {/* Only super admin can manage users */}
+                           
                             {isSuperAdmin ? (
                               <>
-                                {/* Don't allow deactivating super admin (self) */}
+                               
                                 {u.email !== session?.user?.email && (
                                   <button
                                     className={`border rounded px-2 py-1 text-xs ${
