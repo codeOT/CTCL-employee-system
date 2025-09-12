@@ -15,7 +15,7 @@ export function DepartmentDistribution() {
   useEffect(() => {
     async function fetchDepartments() {
       try {
-        const res = await fetch("/api/employees") // <-- GET all employees
+        const res = await fetch("/api/employees")
         const employees = await res.json()
 
         // ✅ Count employees by department

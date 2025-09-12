@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     { new: true }
   );
 
-  await Session.deleteMany({ userId }); // Force logout
+  await Session.deleteMany({ userId }); 
 
   return NextResponse.json({ success: true, updatedUser });
 }

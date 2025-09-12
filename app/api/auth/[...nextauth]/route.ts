@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import connectDB from "@/lib/connectDB";
 import User from "@/models/Users";
 import type { JWT } from "next-auth/jwt";
-// import sendMail from "@/lib/sendMail";
+
 import sendApprovalEmail  from "@/lib/sendApprovalEmail";
 
 interface CustomJWT extends JWT {
@@ -46,19 +46,18 @@ async authorize(credentials) {
   const isValid = await bcrypt.compare(credentials.password, user.password);
   if (!isValid) throw new Error("Invalid credentials");
 
-  //  Handle Admin Login Approval
+  
 if (user.role === "admin") {
   if (!user.loginApproved) {
-    // Set approval as pending
+    
     await User.findByIdAndUpdate(user._id, { 
       approvalPending: true,
-      lastLoginAttempt: new Date() // Optional: track when they last tried
+      lastLoginAttempt: new Date() 
     });
     
-    // Send approval email
     await sendApprovalEmail(user);
     
-    // Include user ID in error for frontend polling
+    
     throw new Error(`Awaiting Admin approval. Check your email for status updates.|${user._id.toString()}`);
   }
 }
