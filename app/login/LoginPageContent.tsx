@@ -6,6 +6,7 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ForgetPasswordDialog } from "@/components/ForgetPasswordDialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPageContent() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function LoginPageContent() {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
   
   // Approval polling states
   const [isWaitingForApproval, setIsWaitingForApproval] = useState(false);
@@ -54,6 +56,12 @@ export default function LoginPageContent() {
           setErr(null);
           clearInterval(pollInterval);
           
+          // Show success toast
+          toast({
+            title: "Access Approved!",
+            description: "Your login access has been approved. You can now sign in.",
+          });
+          
           // Show browser notification if permission granted
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('Access Approved!', {
@@ -74,6 +82,13 @@ export default function LoginPageContent() {
           setIsWaitingForApproval(false);
           setErr('Your access request has been declined.');
           clearInterval(pollInterval);
+          
+          // Show error toast
+          toast({
+            title: "Access Declined",
+            description: "Your login access request has been declined. Contact your administrator.",
+            variant: "destructive",
+          });
           
           // Show decline notification
           if ('Notification' in window && Notification.permission === 'granted') {
@@ -119,6 +134,12 @@ export default function LoginPageContent() {
     setErr(null);
     setApprovalMessage('');
     
+    // Show loading toast
+    toast({
+      title: "Logging in",
+      description: "Please wait while we authenticate your credentials...",
+    });
+    
     const res = await signIn("credentials", {
       email,
       password,
@@ -128,7 +149,14 @@ export default function LoginPageContent() {
     
     setLoading(false);
     
-    if (!res) return setErr("Unexpected error");
+    if (!res) {
+      toast({
+        title: "Login Failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+      return setErr("Unexpected error");
+    }
     
     if (res.error) {
       console.log('Login error:', res.error);
@@ -137,6 +165,12 @@ export default function LoginPageContent() {
       if (res.error.includes('Awaiting Admin approval')) {
         console.log('Detected approval pending error');
         console.log('Full error message:', res.error);
+        
+        // Show pending approval toast
+        toast({
+          title: "Approval Required",
+          description: "Your account is pending approval. Please wait for administrator confirmation.",
+        });
         
         // Check if user ID is embedded in error message
         const errorParts = res.error.split('|');
@@ -182,16 +216,30 @@ export default function LoginPageContent() {
           }
         }
       } else {
+        // Show login error toast
+        toast({
+          title: "Login Failed",
+          description: res.error === "Invalid credentials" ? "Invalid email or password" : res.error,
+          variant: "destructive",
+        });
         setErr(res.error);
       }
       return;
     }
     
-    router.push(res.url || "/dashboard");
+    // Show success toast and redirect
+    toast({
+      title: "Welcome!",
+      description: "Login successful. Redirecting to dashboard...",
+    });
+    
+    setTimeout(() => {
+      router.push(res.url || "/dashboard");
+    }, 500); // Small delay to show the success toast
   }
 
   return (
-    <main className="min-h-screen flex items-center">
+    <main className="min-h-screen h-screen flex items-center overflow-hidden">
       <form
         onSubmit={onSubmit}
         className="w-full max-w-sm space-y-4 p-6 m-auto"
@@ -203,56 +251,59 @@ export default function LoginPageContent() {
           height="500"
           className="rounded-xl mb-12"
         />
-        <div className="border rounded-xl p-6 space-y-7 shadow-lg">
+        <div className="border rounded-xl p-6 space-y-1 shadow-lg min-h-[400px] flex flex-col justify-center">
           <h1 className="text-2xl font-bold">Sign in</h1>
           
-          {/* Error Messages */}
-          {err && !approvalMessage && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{err}</p>
-            </div>
-          )}
-          
-          {/* Approval Status Messages */}
-          {isWaitingForApproval && (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-              <div className="flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600 mr-3"></div>
-                <p className="text-sm text-yellow-800">
-                  Waiting for admin approval... Please check your email or wait for confirmation.
-                </p>
+          {/* Fixed height container for messages */}
+          <div className="min-h-[60px]">
+            {/* Error Messages */}
+            {err && !approvalMessage && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{err}</p>
               </div>
-            </div>
-          )}
-          
-          {/* Success/Decline Messages */}
-          {approvalMessage && (
-            <div className={`p-3 border rounded-md ${
-              approvalMessage.includes('Approved') 
-                ? 'bg-green-50 border-green-200' 
-                : 'bg-red-50 border-red-200'
-            }`}>
-              <p className={`text-sm ${
+            )}
+            
+            {/* Approval Status Messages */}
+            {isWaitingForApproval && (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600 mr-3"></div>
+                  <p className="text-sm text-yellow-800">
+                    Waiting for admin approval... Please check your email or wait for confirmation.
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {/* Success/Decline Messages */}
+            {approvalMessage && (
+              <div className={`p-3 border rounded-md ${
                 approvalMessage.includes('Approved') 
-                  ? 'text-green-800' 
-                  : 'text-red-800'
+                  ? 'bg-green-50 border-green-200' 
+                  : 'bg-red-50 border-red-200'
               }`}>
-                {approvalMessage.includes('Approved') && '✅ '}
-                {approvalMessage.includes('Declined') && '❌ '}
-                {approvalMessage}
-              </p>
-              {approvalMessage.includes('Approved') && (
-                <p className="text-xs text-green-600 mt-1">
-                  You can now enter your credentials and sign in.
+                <p className={`text-sm ${
+                  approvalMessage.includes('Approved') 
+                    ? 'text-green-800' 
+                    : 'text-red-800'
+                }`}>
+                  {approvalMessage.includes('Approved') && '✅ '}
+                  {approvalMessage.includes('Declined') && '❌ '}
+                  {approvalMessage}
                 </p>
-              )}
-              {approvalMessage.includes('Declined') && (
-                <p className="text-xs text-red-600 mt-1">
-                  Contact your system administrator for assistance.
-                </p>
-              )}
-            </div>
-          )}
+                {approvalMessage.includes('Approved') && (
+                  <p className="text-xs text-green-600 mt-1">
+                    You can now enter your credentials and sign in.
+                  </p>
+                )}
+                {approvalMessage.includes('Declined') && (
+                  <p className="text-xs text-red-600 mt-1">
+                    Contact your system administrator for assistance.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
           
           {/* Debug Info - Remove after fixing */}
           {currentUserId && (
@@ -266,7 +317,10 @@ export default function LoginPageContent() {
                   const response = await fetch(`/api/auth/check-approval?userId=${currentUserId}`);
                   const data = await response.json();
                   console.log('Manual check result:', data);
-                  alert(`Status: ${JSON.stringify(data, null, 2)}`);
+                  toast({
+                    title: "Manual Check",
+                    description: `Status: ${JSON.stringify(data, null, 2)}`,
+                  });
                 }}
                 className="bg-blue-500 text-white px-2 py-1 text-xs rounded mt-1"
               >

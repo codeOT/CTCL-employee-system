@@ -12,16 +12,19 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface AddEmployeeFormProps {
-  onSubmit: (employee: any) => void; // You can replace `any` with your IEmployee type
+  onSubmit: (employee: any) => void; 
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
-export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
+export function AddEmployeeForm({ onSubmit, onCancel, isSubmitting = false }: AddEmployeeFormProps) {
+  const { toast } = useToast();
+  
   const [formData, setFormData] = useState({
-    employeeId: "", // Added Employee ID field
+    employeeId: "",
     fullName: "",
     email: "",
     phone: "",
@@ -58,56 +61,78 @@ export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
     achievements: "",
   });
 
-  const handleChange = (e: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: any) => {
+  const resetForm = () => {
+    setFormData({
+      employeeId: "",
+      fullName: "",
+      email: "",
+      phone: "",
+      dateOfBirth: "",
+      address: "",
+      emergencyContact: "",
+      bloodGroup: "",
+      nextOfKin: "",
+      maritalStatus: "",
+      stateOfOrigin: "",
+      lga: "",
+      bvn: "",
+      nin: "",
+      nokAddress: "",
+      nokPhone: "",
+      nokEmail: "",
+      nokRelationship: "",
+      bankName: "",
+      bankAccountNumber: "",
+      position: "",
+      department: "",
+      joinDate: new Date().toISOString().split("T")[0],
+      employeeType: "",
+      manager: "",
+      workLocation: "",
+      status: "Active",
+      pensionProvider: "",
+      pensionNumber: "",
+      hmoProvider: "",
+      hmoNumber: "",
+      skills: "",
+      education: "",
+      recentReviews: "",
+      achievements: "",
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const res = await fetch("/api/employees", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          skills: formData.skills.split(",").map((s) => s.trim()),
-          education: formData.education.split(",").map((s) => s.trim()),
-          recentReviews: formData.recentReviews.split(",").map((s) => s.trim()),
-          achievements: formData.achievements.split(",").map((s) => s.trim()),
-        }),
-      });
-      
-      const result = await res.json();
-      
-      if (res.ok) {
-        toast({
-          title: "Employee Added",
-          description: `${formData.fullName} added successfully`,
-        });
-        setFormData({ 
-          ...formData, 
-          employeeId: "", 
-          fullName: "", 
-          email: "", 
-          phone: "" 
-        }); // reset some fields
-        onSubmit(result);
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to add employee",
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
-      console.error(err);
+    
+    // Validate required fields
+    if (!formData.employeeId || !formData.fullName || !formData.email) {
       toast({
-        title: "Error",
-        description: "Server error",
+        title: "Validation Error",
+        description: "Employee ID, Full Name, and Email are required fields",
         variant: "destructive",
       });
+      return;
     }
+
+    // Transform data and pass to parent - no API call here
+    const employeeData = {
+      ...formData,
+      skills: formData.skills ? formData.skills.split(",").map((s) => s.trim()).filter(s => s.length > 0) : [],
+      education: formData.education ? formData.education.split(",").map((s) => s.trim()).filter(s => s.length > 0) : [],
+      recentReviews: formData.recentReviews ? formData.recentReviews.split(",").map((s) => s.trim()).filter(s => s.length > 0) : [],
+      achievements: formData.achievements ? formData.achievements.split(",").map((s) => s.trim()).filter(s => s.length > 0) : [],
+    };
+
+    // Let parent component handle the API call
+    onSubmit(employeeData);
+    
+    // Reset form
+    resetForm();
   };
 
   return (
@@ -120,73 +145,90 @@ export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
         <h2 className="font-semibold text-lg mb-2">Personal Information</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>Employee ID *</Label>
+            <Label htmlFor="employeeId">Employee ID *</Label>
             <Input
+              id="employeeId"
               name="employeeId"
               value={formData.employeeId}
               onChange={handleChange}
-              placeholder="CTCL.." 
+              placeholder="CTCL001" 
               required
+              disabled={isSubmitting}
             />
           </div>
           <div>
-            <Label>Full Name *</Label>
+            <Label htmlFor="fullName">Full Name *</Label>
             <Input
+              id="fullName"
               name="fullName"
               value={formData.fullName}
               onChange={handleChange}
               required
+              disabled={isSubmitting}
             />
           </div>
           <div>
-            <Label>Email *</Label>
+            <Label htmlFor="email">Email *</Label>
             <Input
+              id="email"
               name="email"
               type="email"
               value={formData.email}
               onChange={handleChange}
               required
+              disabled={isSubmitting}
             />
           </div>
           <div>
-            <Label>Phone</Label>
+            <Label htmlFor="phone">Phone</Label>
             <Input
+              id="phone"
               name="phone"
               value={formData.phone}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
           <div>
-            <Label>Date of Birth</Label>
+            <Label htmlFor="dateOfBirth">Date of Birth</Label>
             <Input
+              id="dateOfBirth"
               name="dateOfBirth"
               type="date"
               value={formData.dateOfBirth}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
           <div className="md:col-span-2">
-            <Label>Address</Label>
+            <Label htmlFor="address">Address</Label>
             <Textarea
+              id="address"
               name="address"
               value={formData.address}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
           <div>
-            <Label>Emergency Contact</Label>
+            <Label htmlFor="emergencyContact">Emergency Contact</Label>
             <Input
+              id="emergencyContact"
               name="emergencyContact"
               value={formData.emergencyContact}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
           <div>
-            <Label>Blood Group</Label>
+            <Label htmlFor="bloodGroup">Blood Group</Label>
             <Input
+              id="bloodGroup"
               name="bloodGroup"
               value={formData.bloodGroup}
               onChange={handleChange}
+              placeholder="e.g., O+"
+              disabled={isSubmitting}
             />
           </div>
           <div>
@@ -196,36 +238,58 @@ export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
                 setFormData((p) => ({ ...p, maritalStatus: val }))
               }
               value={formData.maritalStatus}
+              disabled={isSubmitting}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select" />
+                <SelectValue placeholder="Select marital status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Single">Single</SelectItem>
                 <SelectItem value="Married">Married</SelectItem>
                 <SelectItem value="Divorced">Divorced</SelectItem>
+                <SelectItem value="Widowed">Widowed</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label>State of Origin</Label>
+            <Label htmlFor="stateOfOrigin">State of Origin</Label>
             <Input
+              id="stateOfOrigin"
               name="stateOfOrigin"
               value={formData.stateOfOrigin}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
           <div>
-            <Label>LGA</Label>
-            <Input name="lga" value={formData.lga} onChange={handleChange} />
+            <Label htmlFor="lga">LGA</Label>
+            <Input 
+              id="lga"
+              name="lga" 
+              value={formData.lga} 
+              onChange={handleChange}
+              disabled={isSubmitting}
+            />
           </div>
           <div>
-            <Label>BVN</Label>
-            <Input name="bvn" value={formData.bvn} onChange={handleChange} />
+            <Label htmlFor="bvn">BVN</Label>
+            <Input 
+              id="bvn"
+              name="bvn" 
+              value={formData.bvn} 
+              onChange={handleChange}
+              disabled={isSubmitting}
+            />
           </div>
           <div>
-            <Label>NIN</Label>
-            <Input name="nin" value={formData.nin} onChange={handleChange} />
+            <Label htmlFor="nin">NIN</Label>
+            <Input 
+              id="nin"
+              name="nin" 
+              value={formData.nin} 
+              onChange={handleChange}
+              disabled={isSubmitting}
+            />
           </div>
         </div>
       </div>
@@ -235,43 +299,54 @@ export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
         <h2 className="font-semibold text-lg mb-2">Next of Kin</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>Next of Kin</Label>
+            <Label htmlFor="nextOfKin">Next of Kin</Label>
             <Input
+              id="nextOfKin"
               name="nextOfKin"
               value={formData.nextOfKin}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
           <div>
-            <Label>Relationship</Label>
+            <Label htmlFor="nokRelationship">Relationship</Label>
             <Input
+              id="nokRelationship"
               name="nokRelationship"
               value={formData.nokRelationship}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
-          <div>
-            <Label>Address</Label>
+          <div className="md:col-span-2">
+            <Label htmlFor="nokAddress">Address</Label>
             <Textarea
+              id="nokAddress"
               name="nokAddress"
               value={formData.nokAddress}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
           <div>
-            <Label>Phone</Label>
+            <Label htmlFor="nokPhone">Phone</Label>
             <Input
+              id="nokPhone"
               name="nokPhone"
               value={formData.nokPhone}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
           <div>
-            <Label>Email</Label>
+            <Label htmlFor="nokEmail">Email</Label>
             <Input
+              id="nokEmail"
               name="nokEmail"
+              type="email"
               value={formData.nokEmail}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -282,19 +357,23 @@ export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
         <h2 className="font-semibold text-lg mb-2">Bank Details</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>Bank Name</Label>
+            <Label htmlFor="bankName">Bank Name</Label>
             <Input
+              id="bankName"
               name="bankName"
               value={formData.bankName}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
           <div>
-            <Label>Account Number</Label>
+            <Label htmlFor="bankAccountNumber">Account Number</Label>
             <Input
+              id="bankAccountNumber"
               name="bankAccountNumber"
               value={formData.bankAccountNumber}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -302,14 +381,16 @@ export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
 
       {/* Employment Info */}
       <div>
-        <h2 className="font-semibold text-lg mb-2">Employment Info</h2>
+        <h2 className="font-semibold text-lg mb-2">Employment Information</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>Position</Label>
+            <Label htmlFor="position">Position</Label>
             <Input
+              id="position"
               name="position"
               value={formData.position}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
           <div>
@@ -319,6 +400,7 @@ export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
                 setFormData((p) => ({ ...p, department: val }))
               }
               value={formData.department}
+              disabled={isSubmitting}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select Department" />
@@ -328,23 +410,24 @@ export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
                 <SelectItem value="Admin">Admin</SelectItem>
                 <SelectItem value="Finance">Finance</SelectItem>
                 <SelectItem value="Operations">Operations</SelectItem>
-                <SelectItem value="Business Development">
-                  Business Development
-                </SelectItem>
+                <SelectItem value="Business Development">Business Development</SelectItem>
                 <SelectItem value="Legal">Legal</SelectItem>
+                <SelectItem value="IT">IT</SelectItem>
+                <SelectItem value="Marketing">Marketing</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label>Join Date</Label>
+            <Label htmlFor="joinDate">Join Date</Label>
             <Input
+              id="joinDate"
               name="joinDate"
               type="date"
               value={formData.joinDate}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
-
           <div>
             <Label>Employee Type</Label>
             <Select
@@ -352,6 +435,7 @@ export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
                 setFormData((p) => ({ ...p, employeeType: val }))
               }
               value={formData.employeeType}
+              disabled={isSubmitting}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select Employee Type" />
@@ -361,42 +445,29 @@ export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
                 <SelectItem value="Part-Time">Part-Time</SelectItem>
                 <SelectItem value="Contract">Contract</SelectItem>
                 <SelectItem value="Intern">Intern</SelectItem>
-                <SelectItem value="Remote">Remote</SelectItem>
+                <SelectItem value="Consultant">Consultant</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label>Manager</Label>
+            <Label htmlFor="manager">Manager</Label>
             <Input
+              id="manager"
               name="manager"
               value={formData.manager}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
           <div>
-            <Label>Work Location</Label>
+            <Label htmlFor="workLocation">Work Location</Label>
             <Input
+              id="workLocation"
               name="workLocation"
               value={formData.workLocation}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
-          </div>
-          <div>
-            <Label>Status</Label>
-            <Select
-              onValueChange={(val) =>
-                setFormData((p) => ({ ...p, status: val }))
-              }
-              value={formData.status}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
       </div>
@@ -406,28 +477,26 @@ export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
         <h2 className="font-semibold text-lg mb-2">Pensions and HMO</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>Pension Provider</Label>
+            <Label htmlFor="pensionProvider">Pension Provider</Label>
             <Input
+              id="pensionProvider"
               name="pensionProvider"
               value={formData.pensionProvider}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
-
           <div>
-            <Label>Pension Number</Label>
+            <Label htmlFor="pensionNumber">Pension Number</Label>
             <Input
+              id="pensionNumber"
               name="pensionNumber"
               value={formData.pensionNumber}
               onChange={handleChange}
               placeholder="Enter Pension Number"
+              disabled={isSubmitting}
             />
           </div>
-        </div>
-      </div>
-
-      <div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label>HMO Provider</Label>
             <Select
@@ -435,22 +504,28 @@ export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
                 setFormData((p) => ({ ...p, hmoProvider: val }))
               }
               value={formData.hmoProvider}
+              disabled={isSubmitting}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select HMO Provider" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Leadway HMO">Leadway HMO</SelectItem>
+                <SelectItem value="AIICO Multishield">AIICO Multishield</SelectItem>
+                <SelectItem value="Hygeia HMO">Hygeia HMO</SelectItem>
+                <SelectItem value="Reliance HMO">Reliance HMO</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label>HMO Number</Label>
+            <Label htmlFor="hmoNumber">HMO Number</Label>
             <Input
+              id="hmoNumber"
               name="hmoNumber"
               value={formData.hmoNumber}
               onChange={handleChange}
               placeholder="Enter HMO Number"
+              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -461,19 +536,25 @@ export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
         <h2 className="font-semibold text-lg mb-2">Skills & Education</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>Skills (comma separated)</Label>
+            <Label htmlFor="skills">Skills (comma separated)</Label>
             <Input
+              id="skills"
               name="skills"
               value={formData.skills}
               onChange={handleChange}
+              placeholder="e.g., JavaScript, Project Management, Communication"
+              disabled={isSubmitting}
             />
           </div>
           <div>
-            <Label>Education (comma separated)</Label>
+            <Label htmlFor="education">Education (comma separated)</Label>
             <Input
+              id="education"
               name="education"
               value={formData.education}
               onChange={handleChange}
+              placeholder="e.g., BSc Computer Science, MBA"
+              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -481,33 +562,48 @@ export function AddEmployeeForm({ onSubmit, onCancel }: AddEmployeeFormProps) {
 
       {/* Performance */}
       <div>
-        <h2 className="font-semibold text-lg mb-2">Performance</h2>
+        <h2 className="font-semibold text-lg mb-2">Performance & Achievements</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>Recent Reviews (comma separated)</Label>
+            <Label htmlFor="recentReviews">Recent Reviews (comma separated)</Label>
             <Input
+              id="recentReviews"
               name="recentReviews"
               value={formData.recentReviews}
               onChange={handleChange}
+              placeholder="e.g., Excellent performer, Team player"
+              disabled={isSubmitting}
             />
           </div>
           <div>
-            <Label>Achievements (comma separated)</Label>
+            <Label htmlFor="achievements">Achievements (comma separated)</Label>
             <Input
+              id="achievements"
               name="achievements"
               value={formData.achievements}
               onChange={handleChange}
+              placeholder="e.g., Employee of the month, Project completion"
+              disabled={isSubmitting}
             />
           </div>
         </div>
       </div>
 
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
           Cancel
         </Button>
-        <Button type="submit" className="bg-sky-600 hover:bg-sky-700">
-          Add Employee
+        <Button 
+          type="submit" 
+          className="bg-sky-600 hover:bg-sky-700"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Adding Employee..." : "Add Employee"}
         </Button>
       </div>
     </form>

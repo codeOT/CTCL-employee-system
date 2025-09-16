@@ -1,6 +1,6 @@
 "use client";
 import { Employee, EmployeeFormData } from "@/types/employee";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spin } from "antd";
@@ -39,7 +39,6 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useLayout } from "@/components/layout/layout-provider";
 
 import {
   Dialog,
@@ -65,14 +64,24 @@ import Link from "next/link";
 
 export function EmployeeDirectory() {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchEmployees = async () => {
     try {
+      setIsLoading(true);
+      setError(null);
       const res = await fetch("/api/employees");
+      if (!res.ok) {
+        throw new Error(`Failed to fetch employees: ${res.status}`);
+      }
       const data = await res.json();
       setEmployees(data);
     } catch (error) {
       console.error("Error fetching employees:", error);
+      setError(error instanceof Error ? error.message : "Failed to fetch employees");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -94,9 +103,17 @@ export function EmployeeDirectory() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
+  // Loading states for operations
+  const [isAddingEmployee, setIsAddingEmployee] = useState(false);
+  const [isUpdatingEmployee, setIsUpdatingEmployee] = useState(false);
+  const [isDeletingEmployee, setIsDeletingEmployee] = useState(false);
+
+  // Add a ref to track if submission is in progress
+  const submissionInProgress = useRef(false);
 
   // Selected employee for operations
-  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
   const getDepartmentColor = (department: string) => {
     switch (department) {
@@ -136,11 +153,8 @@ export function EmployeeDirectory() {
     }
   };
 
-  // Use employees from context if available, otherwise use mock data
-  const employeeData = employees.length > 0 ? employees : [];
-
-  const filteredData = employeeData.filter((employee) => {
-    // Search functionality - check multiple fields
+  const filteredData = employees.filter((employee) => {
+    // Search functionality - check multiple fields with null checks
     const matchesSearch =
       searchText === "" ||
       employee.fullName?.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -171,7 +185,18 @@ export function EmployeeDirectory() {
   );
 
   const handleAddEmployee = async (employee: EmployeeFormData) => {
+    // Double protection against multiple submissions
+    if (isAddingEmployee || submissionInProgress.current) {
+      console.log("Submission already in progress, ignoring duplicate attempt");
+      return;
+    }
+    
     try {
+      setIsAddingEmployee(true);
+      submissionInProgress.current = true;
+      
+      console.log("Starting employee creation for:", employee.fullName);
+      
       if (!employee.fullName || !employee.email) {
         toast({
           title: "Validation Error",
@@ -181,34 +206,57 @@ export function EmployeeDirectory() {
         return;
       }
 
+      // Remove only _id field - keep employeeId if provided by user
+      const { _id, ...employeeData } = employee;
+      
+      console.log("Sending employee data (without _id):", employeeData);
+      
       const res = await fetch("/api/employees", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(employee), // backend creates employeeId and coerces reviews
+        body: JSON.stringify(employeeData),
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data?.error || "Failed to add employee");
+        const data = await res.json().catch(() => ({}));
+        
+        // Handle specific duplicate key errors
+        let errorMessage = data?.error || data?.message || `Server error: ${res.status}`;
+        
+        if (errorMessage.includes('E11000') && errorMessage.includes('employeeId')) {
+          errorMessage = "Employee ID already exists. Please try again as a new ID will be generated.";
+        } else if (errorMessage.includes('E11000') && errorMessage.includes('email')) {
+          errorMessage = "An employee with this email address already exists.";
+        } else if (errorMessage.includes('E11000')) {
+          errorMessage = "This employee information already exists in the system.";
+        }
+        
+        throw new Error(errorMessage);
       }
+
+      const result = await res.json();
+      console.log("Employee created successfully:", result);
 
       await fetchEmployees();
       setAddDialogOpen(false);
       toast({
         title: "Employee Added",
-        description: `${employee.fullName} has been added.`,
+        description: `${employee.fullName} has been added successfully.`,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Add employee error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to add employee";
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Error Adding Employee",
+        description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsAddingEmployee(false);
+      submissionInProgress.current = false;
     }
   };
 
-  // Function to update an employee
   const updateEmployee = async (employee: EmployeeFormData) => {
     if (!employee._id) throw new Error("Employee ID is missing");
     const res = await fetch(`/api/employees/${employee._id}`, {
@@ -216,36 +264,51 @@ export function EmployeeDirectory() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(employee),
     });
-    if (!res.ok) throw new Error("Failed to update employee");
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "Failed to update employee");
+    }
     return res.json();
   };
 
   const handleEditEmployee = async (employee: EmployeeFormData) => {
+    // Prevent multiple submissions
+    if (isUpdatingEmployee) return;
+    
     try {
+      setIsUpdatingEmployee(true);
       await updateEmployee(employee);
       await fetchEmployees();
       setEditDialogOpen(false);
+      setSelectedEmployee(null);
       toast({
         title: "Employee Updated",
         description: `${employee.fullName}'s info has been updated.`,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error updating employee:", error);
       toast({
         title: "Update Failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Failed to update employee",
         variant: "destructive",
       });
+    } finally {
+      setIsUpdatingEmployee(false);
     }
   };
 
   const handleDeleteEmployee = async () => {
-    if (!selectedEmployee?._id) return;
+    if (!selectedEmployee?._id || isDeletingEmployee) return;
+    
     try {
+      setIsDeletingEmployee(true);
       const res = await fetch(`/api/employees/${selectedEmployee._id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete employee");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to delete employee");
+      }
       await fetchEmployees();
       setDeleteDialogOpen(false);
       toast({
@@ -253,132 +316,174 @@ export function EmployeeDirectory() {
         description: `${selectedEmployee.fullName} has been removed from the directory.`,
         variant: "destructive",
       });
-    } catch (error: any) {
+      setSelectedEmployee(null);
+    } catch (error) {
       console.error("Delete error:", error);
       toast({
         title: "Delete Failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Failed to delete employee",
         variant: "destructive",
       });
+    } finally {
+      setIsDeletingEmployee(false);
     }
   };
 
-  const openViewDialog = (employee: any) => {
+  const openViewDialog = (employee: Employee) => {
     setSelectedEmployee(employee);
     setViewDialogOpen(true);
   };
 
-  const openEditDialog = (employee: any) => {
+  const openEditDialog = (employee: Employee) => {
     setSelectedEmployee(employee);
     setEditDialogOpen(true);
   };
 
-  const openDeleteDialog = (employee: any) => {
+  const openDeleteDialog = (employee: Employee) => {
     setSelectedEmployee(employee);
     setDeleteDialogOpen(true);
   };
 
   const exportToCSV = () => {
-    // Create CSV content
-    const headers = [
-      "ID",
-      "Name",
-      "Position",
-      "Department",
-      "Email",
-      "Phone",
-      "Join Date",
-      "Status",
-      "Employee Type",
-      "Date of Birth",
-      "Address",
-      "Marital Status",
-      "Emergency Contact",
-      "Blood Group",
-      "Next of Kin",
-      "State of Origin",
-      "LGA",
-      "BVN",
-      "NIN",
-      "NOK Address",
-      "NOK Phone",
-      "NOK Email",
-      "NOK Relationship",
-      "Bank Name",
-      "Bank Account Number",
-      "Pension Number",
-      "Pension Provider",
-      "HMO Number",
-      "HMO Provider",
-      "Skills",
-      "Education",
-      "Achievements",
-    ];
+    if (filteredData.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No employees to export.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    const escapeCSV = (value: string | number | null | undefined): string => {
-      if (value === null || value === undefined) return "";
-      const str = String(value).replace(/"/g, '""'); // escape quotes
-      return `"${str}"`; // wrap in quotes
-    };
+    try {
+      // Create CSV content
+      const headers = [
+        "ID",
+        "Name",
+        "Position",
+        "Department",
+        "Email",
+        "Phone",
+        "Join Date",
+        "Status",
+        "Employee Type",
+        "Date of Birth",
+        "Address",
+        "Marital Status",
+        "Emergency Contact",
+        "Blood Group",
+        "Next of Kin",
+        "State of Origin",
+        "LGA",
+        "BVN",
+        "NIN",
+        "NOK Address",
+        "NOK Phone",
+        "NOK Email",
+        "NOK Relationship",
+        "Bank Name",
+        "Bank Account Number",
+        "Pension Number",
+        "Pension Provider",
+        "HMO Number",
+        "HMO Provider",
+        "Skills",
+        "Education",
+        "Achievements",
+      ];
 
-    const csvContent = [
-      headers.map(escapeCSV).join(","), // header row
-      ...filteredData.map((employee) => {
-        return [
-          employee.employeeId,
-          employee.fullName,
-          employee.position,
-          employee.department,
-          employee.email,
-          employee.phone,
-          employee.joinDate,
-          employee.status,
-          employee.employeeType,
-          employee.dateOfBirth,
-          employee.address,
-          employee.maritalStatus,
-          employee.emergencyContact,
-          employee.bloodGroup,
-          employee.nextOfKin,
-          employee.stateOfOrigin,
-          employee.lga,
-          employee.bvn,
-          employee.nin,
-          employee.nokAddress,
-          employee.nokPhone,
-          employee.nokEmail,
-          employee.nokRelationship,
-          employee.bankName,
-          employee.bankAccountNumber,
-          employee.pensionNumber,
-          employee.pensionProvider,
-          employee.hmoNumber,
-          employee.hmoProvider,
-          (employee.skills || []).join("; "),
-          (employee.education || []).join("; "),
-          (employee.achievements || []).join("; "),
-        ]
-          .map(escapeCSV)
-          .join(",");
-      }),
-    ].join("\n");
+      const escapeCSV = (value: string | number | null | undefined): string => {
+        if (value === null || value === undefined) return "";
+        const str = String(value).replace(/"/g, '""'); // escape quotes
+        return `"${str}"`; // wrap in quotes
+      };
 
-    // Create a blob and download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "employees.csv");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const csvContent = [
+        headers.map(escapeCSV).join(","), // header row
+        ...filteredData.map((employee) => {
+          return [
+            employee.employeeId,
+            employee.fullName,
+            employee.position,
+            employee.department,
+            employee.email,
+            employee.phone,
+            employee.joinDate,
+            employee.status,
+            employee.employeeType,
+            employee.dateOfBirth,
+            employee.address,
+            employee.maritalStatus,
+            employee.emergencyContact,
+            employee.bloodGroup,
+            employee.nextOfKin,
+            employee.stateOfOrigin,
+            employee.lga,
+            employee.bvn,
+            employee.nin,
+            employee.nokAddress,
+            employee.nokPhone,
+            employee.nokEmail,
+            employee.nokRelationship,
+            employee.bankName,
+            employee.bankAccountNumber,
+            employee.pensionNumber,
+            employee.pensionProvider,
+            employee.hmoNumber,
+            employee.hmoProvider,
+            (employee.skills || []).join("; "),
+            (employee.education || []).join("; "),
+            (employee.achievements || []).join("; "),
+          ]
+            .map(escapeCSV)
+            .join(",");
+        }),
+      ].join("\n");
 
-    toast({
-      title: "Export Successful",
-      description: `${filteredData.length} employee records exported to CSV.`,
-    });
+      // Create a blob and download
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `employees_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url); // Clean up
+
+      toast({
+        title: "Export Successful",
+        description: `${filteredData.length} employee records exported to CSV.`,
+      });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export employee data.",
+        variant: "destructive",
+      });
+    }
   };
+
+  // Show error state
+  if (error && !isLoading) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
+        <div className="text-center">
+          <div className="text-red-600 mb-4">
+            <Search className="h-12 w-12 mx-auto mb-2" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            Error Loading Employees
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+          <Button onClick={fetchEmployees} variant="outline">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
@@ -442,6 +547,7 @@ export function EmployeeDirectory() {
             variant="outline"
             className="flex items-center gap-2"
             onClick={exportToCSV}
+            disabled={isLoading || filteredData.length === 0}
           >
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Export</span>
@@ -469,19 +575,26 @@ export function EmployeeDirectory() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedData.length > 0 ? (
-              paginatedData.map((employee: any, index: number) => (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8">
+                  <div className="flex flex-col items-center justify-center text-muted-foreground">
+                    <Spin size="small" />
+                    <p className="text-sm mt-2">Loading employees...</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : paginatedData.length > 0 ? (
+              paginatedData.map((employee, index) => (
                 <TableRow
-                  key={
-                    employee._id || employee.employeeId || `employee-${index}`
-                  }
+                  key={employee._id || employee.employeeId || `employee-${index}`}
                 >
                   <TableCell>
                     <div className="flex items-center">
                       <Avatar className="h-8 w-8 mr-2 border">
                         <AvatarImage
-                          src={employee.avatar || "/placeholder.svg"}
-                          alt={employee.fullName}
+                          // src={employee.avatar || "/placeholder.svg"}
+                          alt={employee.fullName || "Employee"}
                         />
                         <AvatarFallback>
                           {employee.fullName?.charAt(0) || "?"}
@@ -489,7 +602,7 @@ export function EmployeeDirectory() {
                       </Avatar>
                       <Link
                         href={`/dashboard/employees/${employee._id}`}
-                        className=" hover:text-green-600 hover:underline"
+                        className="hover:text-green-600 hover:underline"
                       >
                         <span className="font-medium">{employee.fullName}</span>
                       </Link>
@@ -499,7 +612,7 @@ export function EmployeeDirectory() {
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={getDepartmentColor(employee.department)}
+                      className={getDepartmentColor(employee.department || "")}
                     >
                       {employee.department}
                     </Badge>
@@ -508,7 +621,7 @@ export function EmployeeDirectory() {
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={getStatusColor(employee.status)}
+                      className={getStatusColor(employee.status || "")}
                     >
                       {employee.status}
                     </Badge>
@@ -548,15 +661,14 @@ export function EmployeeDirectory() {
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8">
                   <div className="flex flex-col items-center justify-center text-muted-foreground">
-                    {/* <Search className="h-10 w-10 mb-2" /> */}{" "}
-                    <Spin size="small" />
-                    {/* <p>No employees found</p> */}
+                    <Search className="h-10 w-10 mb-2" />
+                    <p>No employees found</p>
                     <p className="text-sm">
                       {searchText ||
                       filters.department !== "all" ||
                       filters.status !== "all"
                         ? "Try adjusting your search or filters"
-                        : "Loading employees..."}
+                        : "Get started by adding your first employee"}
                     </p>
                   </div>
                 </TableCell>
@@ -573,7 +685,7 @@ export function EmployeeDirectory() {
               Showing {(currentPage - 1) * pageSize + 1} to{" "}
               {Math.min(currentPage * pageSize, filteredData.length)} of{" "}
               {filteredData.length} entries
-              {searchText && ` (filtered from ${employeeData.length} total)`}
+              {searchText && ` (filtered from ${employees.length} total)`}
             </div>
             <Pagination>
               <PaginationContent>
@@ -658,14 +770,22 @@ export function EmployeeDirectory() {
       )}
 
       {/* Add Employee Dialog */}
-      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent className="sm:max-w-[800px] h-full ">
+      <Dialog 
+        open={addDialogOpen} 
+        onOpenChange={(open) => {
+          // Prevent closing dialog during submission
+          if (!open && isAddingEmployee) return;
+          setAddDialogOpen(open);
+        }}
+      >
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Employee</DialogTitle>
           </DialogHeader>
           <AddEmployeeForm
             onSubmit={handleAddEmployee}
             onCancel={() => setAddDialogOpen(false)}
+            isSubmitting={isAddingEmployee}
           />
         </DialogContent>
       </Dialog>
@@ -684,7 +804,7 @@ export function EmployeeDirectory() {
 
       {/* Edit Employee Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-[700px] ">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Employee</DialogTitle>
           </DialogHeader>
@@ -713,9 +833,10 @@ export function EmployeeDirectory() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteEmployee}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={isDeletingEmployee}
+              className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
             >
-              Delete
+              {isDeletingEmployee ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
