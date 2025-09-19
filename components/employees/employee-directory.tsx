@@ -98,21 +98,21 @@ export function EmployeeDirectory() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  // Dialog states
+
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
-  // Loading states for operations
+
   const [isAddingEmployee, setIsAddingEmployee] = useState(false);
   const [isUpdatingEmployee, setIsUpdatingEmployee] = useState(false);
   const [isDeletingEmployee, setIsDeletingEmployee] = useState(false);
 
-  // Add a ref to track if submission is in progress
+
   const submissionInProgress = useRef(false);
 
-  // Selected employee for operations
+ 
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
   const getDepartmentColor = (department: string) => {
@@ -154,7 +154,7 @@ export function EmployeeDirectory() {
   };
 
   const filteredData = employees.filter((employee) => {
-    // Search functionality - check multiple fields with null checks
+   
     const matchesSearch =
       searchText === "" ||
       employee.fullName?.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -172,12 +172,12 @@ export function EmployeeDirectory() {
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
-  // Reset to page 1 when search or filters change
+  
   useEffect(() => {
     setCurrentPage(1);
   }, [searchText, filters]);
 
-  // Calculate pagination
+  //page paginatiooooonnn
   const totalPages = Math.ceil(filteredData.length / pageSize);
   const paginatedData = filteredData.slice(
     (currentPage - 1) * pageSize,
@@ -185,9 +185,9 @@ export function EmployeeDirectory() {
   );
 
   const handleAddEmployee = async (employee: EmployeeFormData) => {
-    // Double protection against multiple submissions
+   
     if (isAddingEmployee || submissionInProgress.current) {
-      console.log("Submission already in progress, ignoring duplicate attempt");
+     
       return;
     }
     
@@ -206,10 +206,10 @@ export function EmployeeDirectory() {
         return;
       }
 
-      // Remove only _id field - keep employeeId if provided by user
+      
       const { _id, ...employeeData } = employee;
       
-      console.log("Sending employee data (without _id):", employeeData);
+      // console.log("Sending employee data (without _id):", employeeData);
       
       const res = await fetch("/api/employees", {
         method: "POST",
@@ -220,7 +220,7 @@ export function EmployeeDirectory() {
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         
-        // Handle specific duplicate key errors
+       
         let errorMessage = data?.error || data?.message || `Server error: ${res.status}`;
         
         if (errorMessage.includes('E11000') && errorMessage.includes('employeeId')) {
@@ -272,7 +272,7 @@ export function EmployeeDirectory() {
   };
 
   const handleEditEmployee = async (employee: EmployeeFormData) => {
-    // Prevent multiple submissions
+    
     if (isUpdatingEmployee) return;
     
     try {
@@ -355,7 +355,7 @@ export function EmployeeDirectory() {
     }
 
     try {
-      // Create CSV content
+      
       const headers = [
         "ID",
         "Name",
@@ -393,12 +393,12 @@ export function EmployeeDirectory() {
 
       const escapeCSV = (value: string | number | null | undefined): string => {
         if (value === null || value === undefined) return "";
-        const str = String(value).replace(/"/g, '""'); // escape quotes
-        return `"${str}"`; // wrap in quotes
+        const str = String(value).replace(/"/g, '""'); 
+        return `"${str}"`; 
       };
 
       const csvContent = [
-        headers.map(escapeCSV).join(","), // header row
+        headers.map(escapeCSV).join(","), 
         ...filteredData.map((employee) => {
           return [
             employee.employeeId,
@@ -439,7 +439,7 @@ export function EmployeeDirectory() {
         }),
       ].join("\n");
 
-      // Create a blob and download
+      
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -449,7 +449,7 @@ export function EmployeeDirectory() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url); // Clean up
+      URL.revokeObjectURL(url); 
 
       toast({
         title: "Export Successful",
@@ -465,7 +465,7 @@ export function EmployeeDirectory() {
     }
   };
 
-  // Show error state
+ 
   if (error && !isLoading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8">
@@ -703,7 +703,7 @@ export function EmployeeDirectory() {
                 {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
                   let pageNum = i + 1;
 
-                  // If we have more than 5 pages and we're not at the beginning
+                 
                   if (totalPages > 5 && currentPage > 3) {
                     if (i === 0) {
                       pageNum = 1;
@@ -773,7 +773,7 @@ export function EmployeeDirectory() {
       <Dialog 
         open={addDialogOpen} 
         onOpenChange={(open) => {
-          // Prevent closing dialog during submission
+         
           if (!open && isAddingEmployee) return;
           setAddDialogOpen(open);
         }}

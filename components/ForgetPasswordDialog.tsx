@@ -117,7 +117,7 @@ export function ForgetPasswordDialog() {
               <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
                 <p className="text-xs text-yellow-800">
                   <strong>Security Notice:</strong> Only the configured Super Admin can use this feature. 
-                  A new password will be sent to your email via Resend.
+                  A new password will be sent to your email.
                 </p>
               </div>
 

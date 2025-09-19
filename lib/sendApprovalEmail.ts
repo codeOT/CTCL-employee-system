@@ -11,12 +11,12 @@ export default async function sendApprovalEmail(adminUser: IUser) {
   try {
     console.log("Starting email send for user:", adminUser.email);
     
-    // Check required environment variables
+   
     const requiredEnvVars = {
       NEXTAUTH_URL: process.env.NEXTAUTH_URL,
       RESEND_API_KEY: process.env.RESEND_API_KEY,
       SUPER_ADMIN_EMAIL: process.env.SUPER_ADMIN_EMAIL,
-      FROM_EMAIL: process.env.FROM_EMAIL // Your verified domain email
+      FROM_EMAIL: process.env.FROM_EMAIL 
     };
     
     for (const [key, value] of Object.entries(requiredEnvVars)) {
