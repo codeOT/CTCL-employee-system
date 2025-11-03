@@ -264,7 +264,7 @@ export default function LoginPageContent() {
             )}
             
             {/* Approval Status Messages */}
-            {isWaitingForApproval && (
+            {/* {isWaitingForApproval && (
               <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600 mr-3"></div>
@@ -274,7 +274,7 @@ export default function LoginPageContent() {
                 </div>
               </div>
             )}
-            
+             */}
             {/* Success/Decline Messages */}
             {approvalMessage && (
               <div className={`p-3 border rounded-md ${
@@ -304,30 +304,7 @@ export default function LoginPageContent() {
               </div>
             )}
           </div>
-          
-          {/* Debug Info - Remove after fixing */}
-          {currentUserId && (
-            <div className="p-2 bg-gray-100 text-xs border rounded">
-              <p>Debug Info:</p>
-              <p>User ID: {currentUserId}</p>
-              <p>Waiting: {isWaitingForApproval ? 'Yes' : 'No'}</p>
-              <button 
-                onClick={async () => {
-                  console.log('Manual check with userId:', currentUserId);
-                  const response = await fetch(`/api/auth/check-approval?userId=${currentUserId}`);
-                  const data = await response.json();
-                  console.log('Manual check result:', data);
-                  toast({
-                    title: "Manual Check",
-                    description: `Status: ${JSON.stringify(data, null, 2)}`,
-                  });
-                }}
-                className="bg-blue-500 text-white px-2 py-1 text-xs rounded mt-1"
-              >
-                Manual Check
-              </button>
-            </div>
-          )}
+       
           
           <div className="space-y-1">
             <label className="block text-sm">Email</label>
