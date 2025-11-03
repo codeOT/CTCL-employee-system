@@ -58,7 +58,7 @@ if (user.role === "admin") {
     await sendApprovalEmail(user);
     
     
-    throw new Error(`Awaiting Admin approval. Check your email for status updates.|${user._id.toString()}`);
+    throw new Error(`Awaiting Admin approval. Contact Admin for status updates.|${user._id.toString()}`);
   }
 }
 
