@@ -119,7 +119,7 @@ export function AddEmployeeForm({ onSubmit, onCancel, isSubmitting = false }: Ad
       return;
     }
 
-    // Transform data and pass to parent - no API call here
+    
     const employeeData = {
       ...formData,
       skills: formData.skills ? formData.skills.split(",").map((s) => s.trim()).filter(s => s.length > 0) : [],
@@ -128,7 +128,7 @@ export function AddEmployeeForm({ onSubmit, onCancel, isSubmitting = false }: Ad
       achievements: formData.achievements ? formData.achievements.split(",").map((s) => s.trim()).filter(s => s.length > 0) : [],
     };
 
-    // Let parent component handle the API call
+  
     onSubmit(employeeData);
     
     // Reset form

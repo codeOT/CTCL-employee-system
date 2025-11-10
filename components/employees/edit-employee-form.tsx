@@ -74,7 +74,7 @@ export function EditEmployeeForm({ employee, onSubmit, onCancel }: Props) {
           <h2 className="md:col-span-2 text-lg font-semibold">
             Personal Information
           </h2>
-          
+
           {/* Employee ID Field */}
           <div className="space-y-2">
             <Label htmlFor="employeeId">Employee ID *</Label>
@@ -86,7 +86,7 @@ export function EditEmployeeForm({ employee, onSubmit, onCancel }: Props) {
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name *</Label>
             <Input
@@ -116,63 +116,39 @@ export function EditEmployeeForm({ employee, onSubmit, onCancel }: Props) {
           </div>
 
           {/* Dates */}
-          <h2 className="md:col-span-2 text-lg font-semibold">Dates</h2>
+          <h2 className="md:col-span-2 text-lg font-semibold">Date</h2>
           <div className="space-y-2">
             <Label>Date of Birth</Label>
-            <Popover open={birthOpen} onOpenChange={setBirthOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left",
-                    !birthDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {birthDate ? format(birthDate, "PPP") : "Select date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={birthDate}
-                  onSelect={(d) => {
-                    setBirthDate(d);
-                    if (d) setField("dateOfBirth", format(d, "yyyy-MM-dd"));
-                    setBirthOpen(false);
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
+            <input
+              type="date"
+              value={birthDate ? format(birthDate, "yyyy-MM-dd") : ""}
+              onChange={(e) => {
+                if (e.target.value) {
+                  const newDate = new Date(e.target.value);
+                  setBirthDate(newDate);
+                  setField("dateOfBirth", e.target.value);
+                }
+              }}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              max={new Date().toISOString().split("T")[0]}
+            />
           </div>
 
           <div className="space-y-2">
             <Label>Join Date</Label>
-            <Popover open={joinOpen} onOpenChange={setJoinOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left",
-                    !joinDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {joinDate ? format(joinDate, "PPP") : "Select date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={joinDate}
-                  onSelect={(d) => {
-                    setJoinDate(d);
-                    if (d) setField("joinDate", format(d, "yyyy-MM-dd"));
-                    setJoinOpen(false);
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
+            <input
+              type="date"
+              value={joinDate ? format(joinDate, "yyyy-MM-dd") : ""}
+              onChange={(e) => {
+                if (e.target.value) {
+                  const newDate = new Date(e.target.value);
+                  setJoinDate(newDate);
+                  setField("joinDate", e.target.value);
+                }
+              }}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              max={new Date().toISOString().split("T")[0]}
+            />
           </div>
 
           {/* Employment */}
@@ -456,12 +432,18 @@ export function EditEmployeeForm({ employee, onSubmit, onCancel }: Props) {
           </div>
 
           {/* Skills & Education */}
-          <h2 className="md:col-span-2 text-lg font-semibold">Skills & Education</h2>
+          <h2 className="md:col-span-2 text-lg font-semibold">
+            Skills & Education
+          </h2>
           <div className="space-y-2">
             <Label htmlFor="skills">Skills (comma separated)</Label>
             <Input
               id="skills"
-              value={Array.isArray(formData.skills) ? formData.skills.join(", ") : formData.skills || ""}
+              value={
+                Array.isArray(formData.skills)
+                  ? formData.skills.join(", ")
+                  : formData.skills || ""
+              }
               onChange={(e) => setField("skills", e.target.value)}
             />
           </div>
@@ -469,7 +451,11 @@ export function EditEmployeeForm({ employee, onSubmit, onCancel }: Props) {
             <Label htmlFor="education">Education (comma separated)</Label>
             <Input
               id="education"
-              value={Array.isArray(formData.education) ? formData.education.join(", ") : formData.education || ""}
+              value={
+                Array.isArray(formData.education)
+                  ? formData.education.join(", ")
+                  : formData.education || ""
+              }
               onChange={(e) => setField("education", e.target.value)}
             />
           </div>
@@ -479,7 +465,11 @@ export function EditEmployeeForm({ employee, onSubmit, onCancel }: Props) {
             <Label htmlFor="achievements">Achievements (comma separated)</Label>
             <Input
               id="achievements"
-              value={Array.isArray(formData.achievements) ? formData.achievements.join(", ") : formData.achievements || ""}
+              value={
+                Array.isArray(formData.achievements)
+                  ? formData.achievements.join(", ")
+                  : formData.achievements || ""
+              }
               onChange={(e) => setField("achievements", e.target.value)}
             />
           </div>
